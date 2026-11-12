@@ -1,0 +1,311 @@
+SAANSCHECK — READ-ONLY AQI PROVENANCE / ROOT-CAUSE INVESTIGATION
+================================================================
+
+Purpose
+-------
+Investigate what the project files establish about the source and construction
+of the historical dataset's AQI field, and assess possible explanations for
+the prior source-vs-CPCB-style validation difference. This report does not
+change the raw data, AQI column, processed datasets, models, training code,
+forecast logic, or production UI.
+
+Evidence inspected
+------------------
+- data/raw/delhi_ncr_air_quality.csv.csv
+- data/dataset_inspection_report.txt
+- data/processed/preprocessing_report.txt
+- src/preprocess.py
+- README.md
+- data/processed/aqi_validation_report.txt
+- Historical raw dataset columns, units/metadata fields, timestamp cadence,
+  pollutant and AQI distributions, category labels, and row-level AQI/PM2.5
+  zero relationship.
+
+Executive result
+----------------
+The project materials establish that the historical AQI field is present in
+the raw CSV and is averaged by the project to make its daily forecasting
+target. They do not establish the AQI field's upstream source, generating
+formula, pollutant units, or whether its upstream method is CPCB. The AQI
+category values are exactly consistent with applying the project's documented
+numeric category thresholds to the AQI values; that verifies category
+labelling, not AQI provenance.
+
+The prior validation measured a large negative signed difference
+(calculated CPCB-style AQI minus source AQI = -55.856 points), with MAE 55.865,
+RMSE 59.384, Pearson r 0.9397, and category agreement 24.40%. Those results
+describe a systematic scale/level disagreement under the validation's stated
+unit and daily-aggregation assumptions. They do not identify its cause.
+
+Recommendation: C — Do further data/source investigation before choosing
+whether to rebuild the ML target. Until provenance is resolved, describe the
+existing target as dataset-defined historical AQI, not verified CPCB AQI.
+
+CONFIRMED FACTS
+===============
+
+1. Dataset structure and source fields
+--------------------------------------
+- The historical CSV contains 219,125 rows and 18 columns, from
+  2019-01-01 00:00 through 2024-01-01 00:00.
+- There are five location labels: Delhi, Faridabad, Ghaziabad, Gurgaon, and
+  Noida. Each has 43,825 hourly timestamped rows; no duplicate
+  location/timestamp pairs or missing cells were reported.
+- The file has pollutant fields co, no2, o3, pm10, pm25 and so2; an aqi
+  numeric field; and an aqi_category string. It does not have pollutant unit
+  columns, a source/provenance field, a source station identifier, a method
+  identifier, or an AQI calculation-version field.
+- The hourly timestamps are continuous at one-hour intervals for each
+  location, including five records at 2024-01-01 00:00. This final date is
+  only a partial day.
+- These facts are documented in data/dataset_inspection_report.txt and are
+  consistent with inspection of the raw CSV.
+
+2. Is the dataset AQI explicitly documented as CPCB AQI?
+-------------------------------------------------------
+- No explicit source/method statement was found identifying the historical
+  raw CSV's aqi values as CPCB-calculated AQI.
+- README.md describes the application and says the historical dataset is
+  processed into a daily forecasting dataset, but does not state the raw
+  dataset's publisher, download/source URL, license, units, or AQI formula.
+- data/dataset_inspection_report.txt calls aqi a "Composite Air Quality Index
+  value" and a "pre-calculated AQI"; it does not identify the provider or
+  equation. The word "pre-calculated" means the value exists before project
+  preprocessing; it does not prove how it was calculated.
+- src/preprocess.py uses CPCB category thresholds and calls its category
+  function official CPCB NAQI categorization. This is category mapping of an
+  already supplied numeric AQI, not calculation of AQI from pollutant
+  concentrations.
+- The preprocessing report describes daily AQI averaging and labels the
+  category thresholds CPCB NAQI breakpoints. It does not establish the
+  upstream raw AQI's provenance.
+
+3. Is there documentation describing how the AQI field was generated?
+----------------------------------------------------------------------
+- No generating formula, code path, source-system description, or provenance
+  record for the raw aqi column was found in the inspected historical-data
+  project materials.
+- src/preprocess.py reads the raw aqi column and includes it in
+  groupby(["location_name", "date"]).agg({"aqi": "mean"}). It does not
+  calculate it from pollutant concentrations.
+- It then creates daily aqi_category by applying get_cpcb_aqi_category to
+  that daily mean AQI. This category operation does not recalculate AQI.
+- The raw CSV's aqi_category matches the project's direct threshold mapping
+  for all 219,125 rows. This confirms consistency of labels with numerical
+  AQI bands only.
+
+4. Are pollutant units explicitly documented?
+---------------------------------------------
+- No. The historical raw CSV contains no unit metadata or data dictionary.
+- README.md does not declare units for the historical CSV.
+- The dataset inspection report gives numerical distributions but does not
+  give units.
+- Unit labels used elsewhere in the application or in the separate recent
+  live-data feed are not provenance for the historical raw file. The prior
+  validation therefore assumed µg/m³ for PM2.5, PM10, NO2, SO2 and O3 and
+  mg/m³ for CO, based on the application's display convention. That remains
+  an unverified assumption.
+
+5. Confirmed project handling of historical AQI
+-----------------------------------------------
+- The preprocessing implementation groups by location and calendar date,
+  averages hourly AQI arithmetically, and derives a category from the daily
+  average. The same aggregation averages pollutant columns separately.
+- It filters incomplete calendar dates based on fewer than 24 hourly rows.
+  Because the code filters dates shared across locations, the five
+  2024-01-01 records are removed; 9,130 daily location records remain for
+  2019-01-01 through 2023-12-31.
+- The project therefore forecasts the daily mean of the dataset-provided AQI
+  unless a separately documented target transformation is introduced. It
+  does not currently produce a CPCB concentration-derived target in
+  preprocessing.
+- The comment in src/preprocess.py says the 24-hour mean is standard for
+  pollutants and "composite AQI". The actual code proves the arithmetic mean
+  is used by this project. The comment does not prove that averaging already
+  computed hourly composite AQI is the CPCB daily AQI construction.
+
+6. Measured pollutant and AQI distributions
+-------------------------------------------
+Raw pollutant quantiles (unit unknown; values are as stored):
+
+  Field   Min      1%       Median    99%       Max
+  co      0.0000   0.0000   0.5489    1.2474    1.7856
+  no2     0.0000   0.0000  21.8512   52.8486   73.1804
+  o3      0.0000   0.0000  32.8255   72.5912   95.5209
+  pm10    0.0000   0.0000  82.0957  180.3449  251.4159
+  pm25    0.0000   0.0000  54.8179  117.6251  164.2662
+  so2     0.0000   0.0000   5.4765   12.4345   18.4166
+
+Raw AQI:
+  Min 0.0000; 1st percentile 0.0000; median 197.1187;
+  99th percentile 265.8451; max 314.7276.
+  The dataset inspection report gives mean 163.1287 and standard deviation
+  73.7217.
+
+Raw category counts and shares:
+  Poor          108,104 (49.334%)
+  Moderate       49,371 (22.531%)
+  Satisfactory   45,312 (20.679%)
+  Good           16,332 (7.453%)
+  Very Poor           6 (0.003%)
+  Severe              0
+
+The raw categories exactly match the project threshold mapping applied to
+the raw numeric AQI for all 219,125 records.
+
+7. Measured raw AQI/pollutant associations and related clues
+------------------------------------------------------------
+- Same-hour Pearson correlations with source AQI:
+  PM2.5 0.9621; PM10 0.9331; SO2 0.5686; O3 0.2007;
+  NO2 0.1937; CO 0.1766.
+- All 5,499 observations with AQI exactly zero also have PM2.5 exactly zero;
+  all 5,499 PM2.5-zero observations have AQI zero. This is an exact observed
+  co-occurrence in this file. It supports a link between these fields or a
+  shared upstream rule, but does not identify the formula or prove which
+  field was derived from which.
+- PM2.5 exceeds PM10 in 11,641 hourly rows (5.31%), as noted in the dataset
+  inspection report. Since PM2.5 is physically a size fraction of PM10, this
+  is a data-quality warning. It might reflect sensor/calibration issues,
+  unit inconsistency, transformation, or synthetic/constructed data; the
+  available evidence cannot choose among those explanations.
+- Every location has the exact same record count and perfectly regular hourly
+  coverage over five years. The city-level labels and static coordinates
+  do not identify specific monitoring instruments or stations.
+- Values are stored to high decimal precision, and the data has frequent
+  exact zeros (AQI 2.51%; pollutant zero rates range from 2.51% to 6.44%).
+  These are observable file characteristics, not proof of synthetic data.
+
+STRONG INFERENCES (NOT PROVEN PROVENANCE)
+========================================
+
+1. Is the AQI likely calculated from the pollutant columns, or independently
+   sourced/derived?
+---------------------------------------------------------------------------
+- The exact AQI/PM2.5 zero co-occurrence and the high AQI correlations with
+  PM2.5 and PM10 make a relationship with particulate concentrations likely.
+- The larger validation sample shows PM2.5 was the dominant calculated
+  sub-index on 6,970/9,130 comparable days (76.34%). Source AQI is much higher
+  on average than the CPCB-style calculated value: 163.128 versus 107.272.
+- These patterns are compatible with AQI being derived from pollutants under
+  a different rule, derived primarily from PM2.5, or produced alongside the
+  pollutant series by a shared upstream process. They are also compatible
+  with AQI being sourced independently but correlated with pollution. They
+  cannot distinguish these possibilities.
+- No exact transformation from the six pollutant fields to source AQI has
+  been established. Do not state that source AQI was computed by CPCB, by
+  PM2.5 alone, or by any particular equation.
+
+2. What explains the large negative mean difference?
+----------------------------------------------------
+- Confirmed measured fact: calculated CPCB-style daily AQI minus daily mean
+  source AQI had mean -55.856 points, median -55.927, MAE 55.865, RMSE 59.384,
+  and Pearson correlation 0.9397; category agreement was 24.40%.
+- This indicates that, under the validation's assumed units and selected
+  averaging protocol, the source AQI is systematically higher, while its
+  temporal/spatial movement remains strongly associated with calculated AQI.
+- The dataset evidence does not determine why the source AQI has a higher
+  level. Plausible causes include a different AQI methodology/breakpoint
+  table, different concentration units or conversions, a different pollutant
+  inclusion/aggregation rule, an independently sourced/derived target, or
+  altered/transformed pollutant/AQI data.
+- The validation's dominant-pollutant breakdown suggests that large errors
+  are especially associated with calculated PM2.5 dominance: on those days
+  MAE was 63.697 and mean signed difference -63.697. This localizes the
+  mismatch to cases dominated by the PM2.5 sub-index but does not establish
+  its root cause.
+
+3. Could averaging-window differences explain it?
+-------------------------------------------------
+- They may contribute. The raw measurements are hourly. CPCB-style
+  concentration calculations require 24-hour means for PM2.5, PM10, NO2 and
+  SO2, and 8-hour means for CO and O3. The validation used daily pollutant
+  means for the former four and maximum complete trailing 8-hour means within
+  the day for CO/O3; source AQI was compared as the project's daily arithmetic
+  mean of hourly AQI.
+- The source AQI's own hourly calculation window and the correct daily
+  summary convention for the source series are undocumented. The validation
+  is therefore not a reconstruction of a known source methodology.
+- Window differences alone are not established as the explanation. PM2.5 was
+  the dominant calculated pollutant on 76.34% of comparable days, and its
+  required 24-hour daily mean was used. Without source method documentation
+  or a sensitivity study using authoritative source rules, the contribution
+  of aggregation mismatch cannot be quantified.
+
+4. Could unit differences explain it?
+------------------------------------
+- They cannot be ruled out because historical pollutant units are absent.
+  The AQI calculation is concentration-scale sensitive, so an incorrect
+  assumed unit/conversion could materially change sub-indices.
+- The observed numerical ranges may look plausible under the application's
+  assumed convention, but plausibility is not unit evidence. The live-data
+  API's own unit metadata (where available) pertains to that separate feed
+  and cannot establish units for this historical file.
+- Unit mismatch is therefore a possible but unverified explanation, not a
+  confirmed cause. No unit conversion should be applied to the historical
+  source until its units are established.
+
+5. Could a different AQI methodology explain it?
+------------------------------------------------
+- Yes, this remains plausible. Strong association combined with a persistent
+  level difference is consistent with different breakpoints, pollutant
+  aggregation, pollutants included, or another AQI formula.
+- No alternative formula, standards version, or source provider is recorded
+  in the inspected files. This hypothesis cannot be promoted to a confirmed
+  finding.
+
+6. Synthetic, model-derived, or transformed data clues
+------------------------------------------------------
+- Clues that warrant provenance checking: perfect hourly completeness and
+  identical record counts for five city-level locations; high-precision
+  decimal values; repeated exact zeros; the exact AQI/PM2.5 zero co-occurrence;
+  and the physically unexpected PM2.5 > PM10 observations.
+- Countervailing/neutral observations: the series has temporal and
+  cross-location variation and plausible-looking concentration magnitudes
+  under one possible unit convention. Such properties neither establish nor
+  disprove real monitoring origin.
+- There is no direct marker, metadata, source link, generation script, or
+  provenance record proving the dataset is synthetic, model-derived, or
+  measured by ground monitors. Its provenance remains unknown.
+
+UNRESOLVED QUESTIONS
+====================
+
+1. Who published or supplied the historical CSV, and what is its original
+   download URL, license, and version?
+2. Are these observations measured at monitoring stations, city-level
+   aggregates, model outputs, interpolations, simulations, or a mixture?
+3. What are the units and reference conditions for every pollutant field?
+4. What exact process produced the hourly aqi values? Which pollutants,
+   breakpoints, averaging windows, unit conversions, caps, and rounding rules
+   were used?
+5. Is the aqi field an upstream official value, a value derived from these
+   pollutant columns, or a transformed/synthetic target? Why do its zero
+   records exactly coincide with PM2.5 zeros?
+6. What does a timestamp represent: a measured hourly average, a model time
+   step, an instantaneous reading, or a resampled/derived record?
+7. Are the static coordinates true station coordinates or representative
+   city/zone coordinates?
+8. Can the source owner provide provenance, a data dictionary, calculation
+   code, or an authoritative sample against which the AQI field can be
+   reproduced?
+
+RECOMMENDATION
+==============
+
+C. Do further data/source investigation before choosing A or B.
+
+Reason: the historical AQI source, method, and pollutant units are not
+documented in the project. Rebuilding and retraining on CPCB-style AQI now
+would create a new target under an assumed unit convention and an experiment-
+chosen daily aggregation rule; it would not establish which target reflects
+the intended underlying measurements. Conversely, treating the current values
+as verified CPCB AQI is unsupported.
+
+Until source investigation resolves these issues, any presentation of the
+existing ML target should call it "dataset-defined historical AQI" and clearly
+avoid claiming that it is official or verified CPCB AQI. A later choice of
+target can then be made with the source data dictionary/method in hand, or
+with an explicitly labelled independent CPCB-style research target.
+
+This recommendation is based only on the evidence in the inspected project
+files and calculated diagnostics. No external dataset provenance was inferred.

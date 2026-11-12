@@ -1,0 +1,24 @@
+.streamlit/secrets.toml
+.env
+.env.*
+.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+# Local development files
+.vscode/
+*.log
+.DS_Store
+Thumbs.db
+
+# Private project reports and screenshots
+docs/report_evidence/
+*.pdf
+
+# Raw dataset - redistribution rights not verified
+data/raw/
+# Live API data and diagnostic reports
+data/live/

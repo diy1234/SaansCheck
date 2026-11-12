@@ -1,0 +1,182 @@
+SAANSCHECK HISTORICAL FORECAST FEATURE-CONTRACT AUDIT
+Date: 2026-10-08
+Scope: Historical Random Forest Day +1, Day +2, and Day +3 inference only.
+
+1. EVIDENCE INSPECTED
+---------------------
+- src/preprocess.py: per-location lags and backward rolling features.
+- src/features.py: the 22 predictor schema, calendar/dummy construction,
+  and direct horizon targets.
+- src/train_models.py: identical ordered feature_cols used to fit and test
+  each horizon model.
+- app.py: build_forecast_for_station and the Historical AQI Forecast page.
+- src/data_loader.py: six serialized model loading.
+- data/processed/ml_ready_dataset.csv and
+  data/processed/feature_engineering_report.txt.
+- Saved Random Forest feature_names_in_ metadata for day1, day2, and day3,
+  plus input feature counts for all six saved model artifacts.
+
+The training targets are direct horizons: each feature row at date t is used
+to predict AQI_t+1, AQI_t+2, and AQI_t+3. Thus the three horizon models each
+expect features constructed at the same observed origin date t. Their target
+dates are t+1, t+2, and t+3; future calendar values are not input features in
+the training contract.
+
+2. EXACT TRAINING FEATURE DEFINITIONS
+-------------------------------------
+AQI, lag, and rolling construction is performed independently within each
+location after sorting by location_name and date:
+
+- aqi: observed daily AQI at the feature row date t.
+- AQI_lag_1: aqi.shift(1), AQI at t-1.
+- AQI_lag_2: aqi.shift(2), AQI at t-2.
+- AQI_lag_3: aqi.shift(3), AQI at t-3.
+- AQI_rolling_mean_3: aqi.shift(1).rolling(window=3, min_periods=1).mean().
+  The current row AQI[t] is excluded; available previous rows are used.
+- AQI_rolling_mean_7: aqi.shift(1).rolling(window=7, min_periods=1).mean().
+  The current row AQI[t] is excluded; available previous rows are used.
+- AQI_rolling_std_7: aqi.shift(1).rolling(window=7, min_periods=2).std().
+  The current row AQI[t] is excluded. pandas .std() uses sample standard
+  deviation (ddof=1).
+- pm25, pm10, no2, so2, co, o3: daily pollutant values at date t from the
+  historical daily dataset.
+- month: date t month, 1-12.
+- day: date t day of month, 1-31.
+- day_of_week: date t weekday, Monday=0 through Sunday=6.
+- is_weekend: 1 when date t weekday is Saturday or Sunday, otherwise 0.
+- loc_Delhi, loc_Faridabad, loc_Ghaziabad, loc_Gurgaon, loc_Noida: one-hot
+  indicators for the row's location_name, in the exact model order below.
+
+Feature-engineering code creates direct targets with groupby(location_name)
+and negative shifts. The targets do not turn inference into a recursive
+forecast; each horizon has its own separately trained direct model.
+
+3. PRE-FIX INFERENCE COMPARISON
+-------------------------------
+Match? describes the old app.py inference code before this audit's fix.
+“Day+h” entries describe the feature row passed to that horizon's RF model.
+
+Feature | Training construction | Current inference construction (before fix) | Match? | Required change
+--- | --- | --- | --- | ---
+aqi | Observed AQI at origin t for every horizon. | Day+1 used observed t; Day+2/3 used prior model prediction. | Partial | Use observed t for all three direct models.
+AQI_lag_1 | Observed AQI at t-1. | Day+1 used t-1; Day+2/3 used t. | Partial | Use t-1 at every horizon.
+AQI_lag_2 | Observed AQI at t-2. | Day+1 used t-2; Day+2/3 used t-1. | Partial | Use t-2 at every horizon.
+AQI_lag_3 | Observed AQI at t-3. | Day+1 used t-3; Day+2/3 used t-2. | Partial | Use t-3 at every horizon.
+AQI_rolling_mean_3 | Mean of AQI[t-1:t-3], shift(1), rolling(3), min_periods=1. | Used tail(3) of the current recursive series, including current/predicted AQI. | No | Recompute on observed history shifted by one.
+AQI_rolling_mean_7 | Mean of up to seven prior rows, shift(1), rolling(7), min_periods=1. | Used tail(7) of current recursive series, including current/predicted AQI. | No | Recompute on observed history shifted by one.
+AQI_rolling_std_7 | Sample std of up to seven prior rows; shift(1), rolling(7), min_periods=2, ddof=1. | Used current recursive tail and std(ddof=0); short-history fallback also differed. | No | Match shift, min_periods, and sample std.
+pm25 | Daily value at origin t. | Latest observed row value, held fixed for every horizon. | Yes | Keep source historical daily value at t.
+pm10 | Daily value at origin t. | Latest observed row value, held fixed for every horizon. | Yes | Keep source historical daily value at t.
+no2 | Daily value at origin t. | Latest observed row value, held fixed for every horizon. | Yes | Keep source historical daily value at t.
+so2 | Daily value at origin t. | Latest observed row value, held fixed for every horizon. | Yes | Keep source historical daily value at t.
+co | Daily value at origin t. | Latest observed row value, held fixed for every horizon. | Yes | Keep source historical daily value at t.
+o3 | Daily value at origin t. | Latest observed row value, held fixed for every horizon. | Yes | Keep source historical daily value at t.
+month | Month of feature row date t. | Month of each forecast target date t+h. | No | Use month of observed origin date t.
+day | Day of feature row date t. | Day of each forecast target date t+h. | No | Use day of observed origin date t.
+day_of_week | Weekday of feature row date t. | Weekday of each forecast target date t+h. | No | Use weekday of observed origin date t.
+is_weekend | Weekend flag for feature row date t. | Weekend flag of each forecast target date t+h. | No | Use weekend flag for observed origin date t.
+loc_Delhi | 1 only when the location is Delhi. | Correct station comparison against requested station. | Yes | Preserve indicator and position.
+loc_Faridabad | 1 only when the location is Faridabad. | Correct station comparison against requested station. | Yes | Preserve indicator and position.
+loc_Ghaziabad | 1 only when the location is Ghaziabad. | Correct station comparison against requested station. | Yes | Preserve indicator and position.
+loc_Gurgaon | 1 only when the location is Gurgaon. | Correct station comparison against requested station. | Yes | Preserve indicator and position.
+loc_Noida | 1 only when the location is Noida. | Correct station comparison against requested station. | Yes | Preserve indicator and position.
+
+Feature ordering | See the exact ordered list in section 6. | app.py contained the same 22 names/order; each saved RF model also declared that order. | Yes | Keep the exact order; validate model metadata before predict.
+
+4. MISMATCHES FOUND
+-------------------
+1. The model set is direct-horizon, but inference recursively appended the
+   Day+1 prediction before constructing Day+2 inputs and the Day+2 prediction
+   before constructing Day+3 inputs. This changed aqi and lag features away
+   from the feature row on which each direct model was trained.
+2. Rolling means included the latest observed/current or recursively
+   predicted AQI instead of applying training's shift(1) first.
+3. Rolling standard deviation used population ddof=0, while training's
+   pandas rolling .std() uses sample ddof=1. The calculation also used the
+   wrong, unshifted recursive window.
+4. Calendar features used each target date t+h. Training uses calendar
+   values from the feature/origin row date t. For direct horizon models,
+   target date is output metadata, not a replacement calendar feature row.
+5. Old short-history fallback values silently substituted latest AQI for
+   missing lag history. The corrected code fails clearly unless the three
+   required prior AQI records exist.
+
+5. CHANGES MADE
+---------------
+- Added src/forecast_features.py with the canonical ordered 22-column
+  feature contract and a training-equivalent origin-row builder.
+- The rolling feature calculations now use shift(1), rolling windows and
+  min_periods exactly as preprocessing does. Rolling std is sample std
+  (ddof=1), not population std.
+- app.py now creates one observed-origin vector and passes that same vector
+  independently to rf_day1, rf_day2, and rf_day3. Future actual AQI is never
+  read; model predictions are outputs only and are not recursively fed back.
+- Future forecast dates remain origin date plus 1, 2, or 3 days. For exact
+  training consistency, all direct horizon feature vectors retain calendar
+  fields for the observed origin date t.
+- The inference path verifies saved-model feature_names_in_ (when available)
+  and n_features_in_ before prediction. The vector is explicitly ordered and
+  must contain exactly 22 predictors.
+- Historical daily pollutants are held at the latest observed origin day as
+  the training contract requires. No WAQI values are read or used.
+
+6. FINAL FEATURE ORDER
+----------------------
+1. aqi
+2. AQI_lag_1
+3. AQI_lag_2
+4. AQI_lag_3
+5. AQI_rolling_mean_3
+6. AQI_rolling_mean_7
+7. AQI_rolling_std_7
+8. pm25
+9. pm10
+10. no2
+11. so2
+12. co
+13. o3
+14. month
+15. day
+16. day_of_week
+17. is_weekend
+18. loc_Delhi
+19. loc_Faridabad
+20. loc_Ghaziabad
+21. loc_Gurgaon
+22. loc_Noida
+
+The three saved Random Forest artifacts report these same 22 feature names in
+this order. All six saved artifacts report 22 input features.
+
+7. WORKED DAY +1 EXAMPLE
+------------------------
+Suppose the latest observed origin day t has AQI[t]=70 and the previous
+observations are AQI[t-1]=60, AQI[t-2]=50, and AQI[t-3]=40.
+
+The training-equivalent Day +1 feature row uses:
+  AQI_rolling_mean_3 = mean(AQI[t-1], AQI[t-2], AQI[t-3])
+                     = mean(60, 50, 40)
+                     = 50
+
+AQI[t]=70 is not included in this rolling mean. The aqi feature itself is 70;
+the rolling feature is exclusively backward-looking.
+
+8. VALIDATION AND SCOPE CONFIRMATIONS
+-------------------------------------
+- Focused forecast-feature tests: 11 passed, 0 failed.
+- Tests compare a constructed vector against the existing ML-ready training
+  row for Delhi on 2023-12-31 and passed for all 22 features.
+- All six saved artifacts loaded; each reports 22 input features. The three
+  Random Forest feature-name sequences match section 6 exactly.
+- Historical forecast computation completed for Delhi and returned Day +1,
+  Day +2, and Day +3 values.
+- No model was retrained; no model artifact or hyperparameter was changed.
+- No historical dataset was modified.
+- No WAQI data was used or connected to the ML forecast.
+- Recent Air Quality workspace and its data pipeline were not modified.
+- Historical dashboard layout was not changed; only its existing forecast
+  feature-construction function now calls the contract builder.
+
+The app now supplies all three direct models with training-equivalent
+observed-origin features. Feature definitions and feature order are aligned
+with the training implementation and saved Random Forest metadata.

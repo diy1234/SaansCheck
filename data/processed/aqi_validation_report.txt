@@ -1,0 +1,97 @@
+SAANSCHECK RESEARCH VALIDATION: SOURCE AQI VS CPCB-STYLE AQI
+============================================================================
+
+Scope and interpretation
+- Raw rows inspected: 219,125.
+- Candidate location-days: 9,135; comparable: 9,130; excluded: 5.
+- Hourly coverage: 5 locations; 0 missing/non-numeric source AQI or pollutant values after numeric parsing.
+- Delhi: 43,825 observations, 2019-01-01 00:00:00 through 2024-01-01 00:00:00, non-hourly steps=0.
+- Faridabad: 43,825 observations, 2019-01-01 00:00:00 through 2024-01-01 00:00:00, non-hourly steps=0.
+- Ghaziabad: 43,825 observations, 2019-01-01 00:00:00 through 2024-01-01 00:00:00, non-hourly steps=0.
+- Gurgaon: 43,825 observations, 2019-01-01 00:00:00 through 2024-01-01 00:00:00, non-hourly steps=0.
+- Noida: 43,825 observations, 2019-01-01 00:00:00 through 2024-01-01 00:00:00, non-hourly steps=0.
+- Unit limitation: the raw CSV has no unit metadata. The experiment assumes the units displayed by the existing application (µg/m³ except CO in mg/m³). All calculated values and conclusions are conditional on this unverified assumption.
+- This is a CPCB-style calculation using the project's standalone calculator and cited breakpoint rules. It does not establish that the source dataset is official CPCB data.
+- Comparison grain: location-day. Original AQI is the arithmetic mean of that day's supplied hourly AQI, matching project preprocessing.
+- PM2.5/PM10/NO2/SO2 use the daily 24-hour mean. CO/O3 use the maximum complete trailing 8-hour mean ending within the calendar day; no single-hour O3/CO value is used as an 8-hour average.
+- A pollutant daily value requires at least 16 valid non-negative hourly observations. Eight-hour means additionally require eight consecutive hourly observations. Calculator-unresolved cases, including O3 above its validated 8-hour range, are excluded.
+- Category mapping uses CPCB AQI bands; unrounded float AQI values are retained, following the calculator.
+- Same-hour raw AQI/pollutant Pearson correlations: PM2.5 r=0.9621, PM10 r=0.9331, NO2 r=0.1937, SO2 r=0.5686, CO r=0.1766, O3 r=0.2007. This shows association (strongest with particulate concentrations here), not the formula or provenance used to produce the supplied AQI.
+
+A. Do the dataset AQI and CPCB-style AQI agree?
+- POOR AGREEMENT. Overall: n=9130; MAE=55.865; RMSE=59.384; Pearson r=0.9397; mean difference=-55.856; median difference=-55.927; max |difference|=97.518; within ±5=0.33%; within ±10=0.93%; category agreement=24.40%.
+- Classification rubric (study-specific, not a CPCB standard): STRONG requires both at least 80% within ±10 AQI points and at least 80% category agreement; PARTIAL requires both measures at least 50%; otherwise POOR.
+
+B. If they disagree, how large is the disagreement?
+- Mean absolute difference (MAE): 55.865 AQI points.
+- Mean signed difference (calculated minus source): -55.856; median: -55.927; maximum absolute difference: 97.518.
+- Within ±5: 0.33%; within ±10: 0.93%; category agreement: 24.40%.
+
+C. Is disagreement concentrated in particular pollutants?
+- Dominant pollutant is the largest valid calculated sub-index. This is an association/breakdown, not proof that a pollutant caused the source-vs-calculated difference.
+- PM2.5: dominant on 6,970 days (76.34%).
+- PM10: dominant on 10 days (0.11%).
+- NO2: dominant on 0 days (0.00%).
+- SO2: dominant on 0 days (0.00%).
+- CO: dominant on 52 days (0.57%).
+- O3: dominant on 2,098 days (22.98%).
+  Metrics by calculated dominant pollutant:
+  CO: n=52; MAE=29.062; RMSE=30.699; Pearson r=-0.0217; mean difference=-29.062; median difference=-29.963; max |difference|=46.559; within ±5=0.00%; within ±10=3.85%; category agreement=30.77%
+  O3: n=2098; MAE=30.511; RMSE=32.458; Pearson r=0.2327; mean difference=-30.474; median difference=-31.384; max |difference|=59.383; within ±5=1.43%; within ±10=3.96%; category agreement=71.31%
+  PM10: n=10; MAE=55.795; RMSE=56.137; Pearson r=0.9966; mean difference=-55.795; median difference=-55.634; max |difference|=66.613; within ±5=0.00%; within ±10=0.00%; category agreement=0.00%
+  PM2.5: n=6970; MAE=63.697; RMSE=65.503; Pearson r=0.9520; mean difference=-63.697; median difference=-63.583; max |difference|=97.518; within ±5=0.00%; within ±10=0.00%; category agreement=10.27%
+
+D. Is disagreement different by location?
+Metrics by location:
+  Delhi: n=1826; MAE=55.899; RMSE=59.351; Pearson r=0.9405; mean difference=-55.895; median difference=-55.714; max |difference|=94.012; within ±5=0.27%; within ±10=0.88%; category agreement=24.75%
+  Faridabad: n=1826; MAE=55.624; RMSE=59.249; Pearson r=0.9385; mean difference=-55.607; median difference=-55.728; max |difference|=94.465; within ±5=0.38%; within ±10=1.15%; category agreement=24.75%
+  Ghaziabad: n=1826; MAE=55.766; RMSE=59.299; Pearson r=0.9397; mean difference=-55.753; median difference=-56.203; max |difference|=94.163; within ±5=0.33%; within ±10=0.88%; category agreement=23.99%
+  Gurgaon: n=1826; MAE=56.038; RMSE=59.503; Pearson r=0.9402; mean difference=-56.038; median difference=-55.482; max |difference|=97.518; within ±5=0.27%; within ±10=0.82%; category agreement=24.37%
+  Noida: n=1826; MAE=55.998; RMSE=59.516; Pearson r=0.9396; mean difference=-55.989; median difference=-56.305; max |difference|=93.184; within ±5=0.38%; within ±10=0.93%; category agreement=24.15%
+
+E. Is disagreement different by season/year?
+Metrics by year:
+  2019: n=1825; MAE=56.084; RMSE=59.558; Pearson r=0.9399; mean difference=-56.071; median difference=-56.189; max |difference|=94.465; within ±5=0.33%; within ±10=0.82%; category agreement=24.05%
+  2020: n=1830; MAE=56.055; RMSE=59.570; Pearson r=0.9390; mean difference=-56.053; median difference=-55.889; max |difference|=95.054; within ±5=0.33%; within ±10=0.71%; category agreement=24.21%
+  2021: n=1825; MAE=55.661; RMSE=59.162; Pearson r=0.9405; mean difference=-55.641; median difference=-55.924; max |difference|=97.518; within ±5=0.27%; within ±10=0.99%; category agreement=24.44%
+  2022: n=1825; MAE=55.854; RMSE=59.423; Pearson r=0.9391; mean difference=-55.847; median difference=-56.235; max |difference|=94.672; within ±5=0.49%; within ±10=0.99%; category agreement=24.44%
+  2023: n=1825; MAE=55.669; RMSE=59.203; Pearson r=0.9399; mean difference=-55.669; median difference=-55.311; max |difference|=94.012; within ±5=0.22%; within ±10=1.15%; category agreement=24.88%
+Metrics by calendar month:
+  1: n=775; MAE=81.357; RMSE=81.601; Pearson r=0.9427; mean difference=-81.357; median difference=-82.157; max |difference|=95.054; within ±5=0.00%; within ±10=0.00%; category agreement=30.84%
+  2: n=705; MAE=61.642; RMSE=62.325; Pearson r=0.9467; mean difference=-61.642; median difference=-61.988; max |difference|=86.472; within ±5=0.00%; within ±10=0.00%; category agreement=0.71%
+  3: n=775; MAE=45.226; RMSE=45.855; Pearson r=0.9418; mean difference=-45.226; median difference=-45.175; max |difference|=71.529; within ±5=0.00%; within ±10=0.00%; category agreement=10.58%
+  4: n=750; MAE=44.294; RMSE=44.920; Pearson r=0.9496; mean difference=-44.294; median difference=-44.386; max |difference|=65.776; within ±5=0.00%; within ±10=0.00%; category agreement=13.07%
+  5: n=775; MAE=60.982; RMSE=61.738; Pearson r=0.9547; mean difference=-60.982; median difference=-61.014; max |difference|=87.462; within ±5=0.00%; within ±10=0.00%; category agreement=0.77%
+  6: n=750; MAE=81.706; RMSE=81.952; Pearson r=0.9379; mean difference=-81.706; median difference=-82.590; max |difference|=97.518; within ±5=0.00%; within ±10=0.00%; category agreement=31.33%
+  7: n=775; MAE=72.003; RMSE=72.478; Pearson r=0.9869; mean difference=-72.003; median difference=-72.472; max |difference|=93.137; within ±5=0.00%; within ±10=0.00%; category agreement=0.39%
+  8: n=775; MAE=47.345; RMSE=48.673; Pearson r=0.8295; mean difference=-47.345; median difference=-48.983; max |difference|=72.851; within ±5=0.00%; within ±10=0.13%; category agreement=32.39%
+  9: n=750; MAE=27.372; RMSE=29.360; Pearson r=0.0481; mean difference=-27.323; median difference=-27.451; max |difference|=57.812; within ±5=1.87%; within ±10=5.47%; category agreement=70.00%
+  10: n=775; MAE=27.796; RMSE=29.899; Pearson r=0.1310; mean difference=-27.741; median difference=-27.979; max |difference|=58.570; within ±5=2.06%; within ±10=5.55%; category agreement=69.94%
+  11: n=750; MAE=48.495; RMSE=49.633; Pearson r=0.8448; mean difference=-48.495; median difference=-50.103; max |difference|=72.307; within ±5=0.00%; within ±10=0.00%; category agreement=31.87%
+  12: n=775; MAE=71.987; RMSE=72.462; Pearson r=0.9867; mean difference=-71.987; median difference=-72.267; max |difference|=91.845; within ±5=0.00%; within ±10=0.00%; category agreement=0.39%
+Metrics by season:
+  Winter: n=2255; MAE=71.973; RMSE=72.852; Pearson r=0.9512; mean difference=-71.973; median difference=-73.069; max |difference|=95.054; within ±5=0.00%; within ±10=0.00%; category agreement=10.95%
+  Pre-monsoon: n=2300; MAE=50.231; RMSE=51.486; Pearson r=0.9707; mean difference=-50.231; median difference=-48.729; max |difference|=87.462; within ±5=0.00%; within ±10=0.00%; category agreement=8.09%
+  Monsoon: n=3050; MAE=57.149; RMSE=61.646; Pearson r=0.9473; mean difference=-57.137; median difference=-60.827; max |difference|=97.518; within ±5=0.46%; within ±10=1.38%; category agreement=33.25%
+  Post-monsoon: n=1525; MAE=37.976; RMSE=40.814; Pearson r=0.6809; mean difference=-37.948; median difference=-37.863; max |difference|=72.307; within ±5=1.05%; within ±10=2.82%; category agreement=51.21%
+
+F. Implication for ML forecasting
+- Existing forecasting targets use the source AQI and should be interpreted as forecasts of that source-defined target, not as validated CPCB AQI forecasts.
+- If agreement is poor or partial, the existing target embeds a different AQI semantic from the CPCB-style concentration-based index. Do not silently relabel it as CPCB AQI. Any future switch to a CPCB-derived target should be a separately reviewed dataset and model experiment; this validation did not retrain models.
+- Even high agreement would remain conditional on undocumented source provenance/units, this dataset's physical-consistency issues, and the chosen daily 8-hour maximum convention; that calendar-day summary choice is not independently established here as a mandatory CPCB daily aggregation rule.
+
+Daily aggregation assessment
+- The current 24-hour arithmetic mean of source AQI is reproducible and was used for an apples-to-apples comparison with the existing project target. It is not mathematically equivalent in general to calculating AQI from daily pollutant means because interpolation and the maximum-pollutant rule are nonlinear.
+- For CPCB-style daily comparison, 24-hour pollutant means and within-day maximum complete 8-hour CO/O3 averages are more methodologically aligned than calculating from a single hourly pollutant record. The source AQI's own averaging/provenance is undocumented.
+
+Exclusions
+- Excluded candidate location-days: 5.
+- Calculator unresolved numeric/averaging cases: 0; O3 8-hour breakpoint-mismatch cases: 0. These cases have no CPCB-style AQI value in the comparison output.
+- fewer than 24 consecutive hourly timestamps: 5
+
+Files
+- Comparison table: data/processed/aqi_validation_results.csv
+- This report: data/processed/aqi_validation_report.txt
+- Visualization: data/processed/aqi_validation_comparison.png
+
+No source AQI, raw/processed dataset, model, training logic, forecasting code, or production UI was modified.

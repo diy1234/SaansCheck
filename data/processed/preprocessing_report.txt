@@ -1,0 +1,86 @@
+================================================================================
+SAANSCHECK - HISTORICAL DATA PREPROCESSING AUDIT REPORT
+================================================================================
+
+1. BASIC METRICS & DATASET SHAPE:
+   - Original Row Count (hourly):    219,125
+   - Original Column Count:          18
+   - Original Date Range:            2019-01-01 00:00:00 to 2024-01-01 00:00:00
+   - Final Processed Row Count:      9,130 daily records
+   - Final Processed Column Count:   23
+   - Final Date Range:               2019-01-01 to 2023-12-31
+   - Number of Locations:            5 (Delhi, Faridabad, Ghaziabad, Gurgaon, Noida)
+
+2. DATA CLEANING & ROWS REMOVED:
+   - Missing Values Before Cleaning: 0
+   - Duplicate Rows Before Cleaning: 0
+   - Incomplete Days Filtered:       1 date (2024-01-01) having only 1 observation (00:00:00 midnight)
+   - Hourly Rows Removed:            5 (5 station-hours for incomplete 2024-01-01)
+   - Final Daily Records per Station:{'Delhi': 1826, 'Faridabad': 1826, 'Ghaziabad': 1826, 'Gurgaon': 1826, 'Noida': 1826}
+
+3. SUSPICIOUS-VALUE DECISIONS & PHYSICAL RECONCILIATION:
+   - Hourly PM2.5 > PM10 Anomaly:    In raw hourly data, 11,641 rows (5.31%) exhibited PM2.5 > PM10.
+   - Daily PM2.5 > PM10 Anomaly:     0 rows (0.00%). 24-hour mean aggregation completely reconciled
+                                     sensor baseline variance, yielding physically sound daily concentrations.
+   - Negative Values:                0 negative values detected across all pollutant parameters.
+   - Zero Baseline Readings:         Averaged cleanly across 24 hours into valid positive daily levels.
+
+4. EXACT AGGREGATION LOGIC (HOURLY TO DAILY):
+   - Temporal Grouping: Grouped strictly by [location_name, date].
+   - Completeness Criterion: Retained only days with complete 24-hour continuous observations.
+   - Pollutants (PM2.5, PM10, NO2, SO2, CO, O3): 24-hour arithmetic mean.
+     Rationale: CPCB National Ambient Air Quality Standards specify 24-hour mean concentrations
+     for health risk and monitoring index formulation.
+   - AQI: 24-hour arithmetic mean.
+     Rationale: Daily average AQI provides the continuous target for multi-day time-series forecasting.
+   - aqi_category: Categorized from daily 24-hour mean AQI using official CPCB NAQI breakpoints:
+     Good (0-50), Satisfactory (51-100), Moderate (101-200), Poor (201-300), Very Poor (301-400), Severe (>400).
+   - Coordinates (location_lat, location_lon): Retained as static station metadata.
+
+5. EXACT LAG & ROLLING FEATURE LOGIC (ZERO DATA LEAKAGE):
+   - Station Isolation: Lags are generated exclusively within each location_name partition.
+     Groupby('location_name') ensures that station A's values NEVER bleed into station B's history.
+   - AQI_lag_1: AQI at t-1 (yesterday's AQI for the same location).
+   - AQI_lag_2: AQI at t-2 (2 days ago AQI for the same location).
+   - AQI_lag_3: AQI at t-3 (3 days ago AQI for the same location).
+   - AQI_rolling_mean_3: 3-day rolling mean of past AQI (shift(1).rolling(3).mean()).
+   - AQI_rolling_mean_7: 7-day rolling mean of past AQI (shift(1).rolling(7).mean()).
+   - AQI_rolling_std_7:  7-day rolling standard deviation of past AQI (captures pollution volatility).
+   - Leakage Prevention: All rolling features explicitly operate on shift(1), ensuring zero future lookahead.
+
+6. REMAINING MISSING VALUES IN PROCESSED DATASET:
+   - AQI_lag_1: 5 missing (strictly due to initial t-1, t-2, t-3 boundary lags at Jan 2019 start)
+   - AQI_lag_2: 10 missing (strictly due to initial t-1, t-2, t-3 boundary lags at Jan 2019 start)
+   - AQI_lag_3: 15 missing (strictly due to initial t-1, t-2, t-3 boundary lags at Jan 2019 start)
+   - AQI_rolling_mean_3: 5 missing (strictly due to initial t-1, t-2, t-3 boundary lags at Jan 2019 start)
+   - AQI_rolling_mean_7: 5 missing (strictly due to initial t-1, t-2, t-3 boundary lags at Jan 2019 start)
+   - AQI_rolling_std_7: 10 missing (strictly due to initial t-1, t-2, t-3 boundary lags at Jan 2019 start)
+
+7. FINAL PROCESSED SCHEMA & COLUMNS:
+    1. date (object)
+    2. location_name (object)
+    3. location_lat (float64)
+    4. location_lon (float64)
+    5. co (float64)
+    6. no2 (float64)
+    7. o3 (float64)
+    8. pm10 (float64)
+    9. pm25 (float64)
+   10. so2 (float64)
+   11. aqi (float64)
+   12. aqi_category (object)
+   13. day (int32)
+   14. month (int32)
+   15. year (int32)
+   16. day_of_week (int32)
+   17. is_weekend (int64)
+   18. AQI_lag_1 (float64)
+   19. AQI_lag_2 (float64)
+   20. AQI_lag_3 (float64)
+   21. AQI_rolling_mean_3 (float64)
+   22. AQI_rolling_mean_7 (float64)
+   23. AQI_rolling_std_7 (float64)
+
+================================================================================
+END OF PREPROCESSING AUDIT REPORT
+================================================================================

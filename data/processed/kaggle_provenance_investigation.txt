@@ -1,0 +1,312 @@
+EXTERNAL PROVENANCE INVESTIGATION — KAGGLE DELHI NCR HOURLY AIR QUALITY
+=========================================================================
+
+Investigation date: 2026-10-08
+Scope: Kaggle dataset page, public Kaggle dataset metadata/file listing,
+the rendered file schema, notebooks linked from that dataset page, and a
+targeted search for a directly linked/originating GitHub repository.
+
+Dataset page:
+https://www.kaggle.com/datasets/aniket0712/delhi-ncr-hourly-air-quality-dataset-20192024
+
+Public Kaggle metadata endpoint:
+https://www.kaggle.com/api/v1/datasets/view/aniket0712/delhi-ncr-hourly-air-quality-dataset-20192024
+
+Public Kaggle file-list endpoint:
+https://www.kaggle.com/api/v1/datasets/list/aniket0712/delhi-ncr-hourly-air-quality-dataset-20192024
+
+The local copy inspected in this project is named
+data/raw/delhi_ncr_air_quality.csv.csv. Kaggle's listed file is
+processed_aqi_data.csv. The sizes and schemas appear consistent with the
+project copy, but this investigation did not download/re-hash the Kaggle file
+or establish cryptographic identity between the two files.
+
+Scope limitations
+-----------------
+- Findings below distinguish source statements from inference.
+- Kaggle's public dataset API exposed dataset metadata and the one-file
+  listing. Its public kernels-list endpoint did not return data without
+  authentication (HTTP 401); no credentials or API keys were used.
+- Kaggle's dataset page showed a Code tab with two associated notebooks and
+  zero discussion posts. Notebook pages were examined where publicly
+  accessible. Public GitHub repository/code search was used to look for a
+  source repository. A search result or lack of a result is not proof that no
+  private, unindexed, deleted, or otherwise undiscoverable source exists.
+- No private resources, credentials, Kaggle API key, or local secret was
+  accessed or displayed.
+
+CONFIRMED BY SOURCE
+==================
+
+1. Dataset identity, uploader, publication/version, file and license
+--------------------------------------------------------------------
+- Kaggle titles the dataset "Delhi NCR Hourly Air Quality Dataset
+  (2019–2024)" and names its creator/uploader as Arjav Aniket
+  (Kaggle owner handle: aniket0712).
+- The public dataset metadata lists one current version (version 1,
+  "Initial release"), a last-updated/creation time of 2025-12-02, and one
+  CSV file named processed_aqi_data.csv (42,427,320 bytes).
+- Kaggle labels the license "CC0: Public Domain".
+- The Kaggle description calls it a multi-year collection of hourly air
+  quality measurements for Delhi, Gurgaon, Noida, Faridabad, and Ghaziabad,
+  spanning January 2019 through 2024. It says records contain pollutant
+  concentrations, "computed AQI values", and temporal metadata.
+- The description does not provide a source URL, citation, agency, upstream
+  dataset name, data-collection procedure, or AQI method.
+
+Sources:
+- Dataset landing page and About Dataset text:
+  https://www.kaggle.com/datasets/aniket0712/delhi-ncr-hourly-air-quality-dataset-20192024
+- Public metadata (title, owner, description, license, version, update date):
+  https://www.kaggle.com/api/v1/datasets/view/aniket0712/delhi-ncr-hourly-air-quality-dataset-20192024
+- Public file listing:
+  https://www.kaggle.com/api/v1/datasets/list/aniket0712/delhi-ncr-hourly-air-quality-dataset-20192024
+
+2. What the source says about AQI
+--------------------------------
+- The Kaggle description uses the phrase "computed AQI values".
+- The file schema identifies `aqi` as a numeric Air Quality Index and
+  `aqi_category` as a category string.
+- The source does not say who computed AQI, which input data were used,
+  whether it was computed from the listed pollutants, what formula or
+  breakpoints were applied, what units/conversions were used, which
+  averaging periods were applied, how values were rounded/capped, or which
+  national AQI standard/version was used.
+- The source does not identify the AQI as CPCB AQI, US AQI, another named
+  AQI methodology, or a model-derived AQI.
+- Thus "computed" is explicitly supported as the uploader's description;
+  its method and computational lineage remain undocumented.
+
+Source:
+- Kaggle dataset description and file schema:
+  https://www.kaggle.com/datasets/aniket0712/delhi-ncr-hourly-air-quality-dataset-20192024
+
+3. Unit statements on Kaggle's rendered file schema
+---------------------------------------------------
+The "About this file" schema text contains these unit descriptions:
+
+  Pollutant   Kaggle schema wording/status
+  PM2.5       PM2.5 concentration, µg/m³
+  PM10        PM10 concentration, µg/m³
+  NO2         NO2 concentration, "µg/m³ or ppb"
+  SO2         SO2 concentration; no unit stated
+  CO          "units not shown — likely ppm or mg/m³"
+  O3          O3 concentration; no unit stated
+
+- Kaggle's schema explicitly labels PM2.5 and PM10 as µg/m³.
+- Kaggle itself marks CO's unit as not shown and offers ppm or mg/m³ only as
+  possibilities. It similarly gives alternatives, not a resolved unit, for
+  NO2. No unit is stated there for SO2 or O3.
+- These are statements in the dataset page's schema text, not a traceable
+  measurement-system data dictionary or evidence of official CPCB reporting
+  units for the underlying records. The schema does not document calibration,
+  reference conditions, conversions, or source-unit provenance.
+
+Source:
+- Kaggle dataset page, "About this file" schema:
+  https://www.kaggle.com/datasets/aniket0712/delhi-ncr-hourly-air-quality-dataset-20192024
+
+4. Location/station description
+-------------------------------
+- Kaggle describes the data as measurements "across major cities" in Delhi
+  NCR and lists Delhi, Gurgaon, Noida, Faridabad, and Ghaziabad.
+- Its file schema calls `location_name` a city name and provides latitude
+  and longitude fields.
+- The page does not identify named monitoring stations, station IDs,
+  monitoring networks, instruments, or whether values are measurements from
+  individual stations, city-level aggregates, interpolated/model outputs,
+  representative coordinates, or some other construction.
+- Therefore Kaggle explicitly presents these as city/location labels; it
+  does not establish physical station identity or city-aggregation method.
+
+Sources:
+- Kaggle dataset description:
+  https://www.kaggle.com/datasets/aniket0712/delhi-ncr-hourly-air-quality-dataset-20192024
+- Kaggle file schema:
+  https://www.kaggle.com/datasets/aniket0712/delhi-ncr-hourly-air-quality-dataset-20192024
+
+5. Author-linked notebook and associated notebooks
+-------------------------------------------------
+- The dataset page shows the notebook "Exploring Six Years of Air Quality
+  Trends in Delhi" by the dataset author Arjav Aniket:
+  https://www.kaggle.com/code/aniket0712/exploring-six-years-of-air-quality-trends-in-delhi
+- The publicly displayed notebook code is an EDA/cleaning workflow. It loads
+  the already-existing CSV, detects columns including `aqi`, converts those
+  fields to numeric, fills missing numeric values with column medians, makes
+  exploratory plots/statistics, creates a standardized pollutant-sum
+  `pollution_load`, derives calendar features, and saves a cleaned output.
+- In the inspected author notebook code, no step calculates or reconstructs
+  the `aqi` field from pollutant concentrations. The notebook consumes AQI
+  as an existing field. It therefore does not document how the Kaggle AQI
+  values were originally generated.
+- A second associated analysis/prediction notebook is listed as
+  "Delhi NCR Air Quality Analysis and Prediction" by Brian Risk:
+  https://www.kaggle.com/code/devraai/delhi-ncr-air-quality-analysis-and-prediction
+  Its public page identifies it as an analysis/predictive-modeling notebook
+  using this Kaggle dataset. No originating dataset-generation repository or
+  upstream data citation was identified from the inspected public page.
+- A third related notebook surfaced on the dataset page:
+  https://www.kaggle.com/code/mayank2124/notebook3ff56071db
+  Its page showed "No saved version", so it did not supply inspectable
+  published notebook code.
+- Kaggle metadata reports two dataset-associated kernels; the rendered page
+  also displays related notebook cards, including a card associated with
+  this dataset and another dataset. A related notebook is not automatically
+  source-generation documentation.
+- The associated notebooks are evidence of downstream analysis, not evidence
+  that those authors created the underlying measurements or original AQI
+  field. No code inspected established the source AQI formula.
+
+6. Python/source repository availability
+----------------------------------------
+- The dataset landing page/description and the inspected author notebook do
+  not provide a directly linked GitHub repository, generation-script URL, or
+  separate source-code repository for creating the dataset.
+- Targeted GitHub searches for the exact Kaggle dataset slug/title and for a
+  repository under the uploader's handle did not identify a dataset
+  generation repository. The visible public repository search for
+  `aniket0712` returned a profile-configuration repository, not an air-quality
+  data-generation project.
+- This is a bounded search result, not proof that no source code exists
+  elsewhere or in a non-public location.
+
+Sources:
+- Dataset-author notebook:
+  https://www.kaggle.com/code/aniket0712/exploring-six-years-of-air-quality-trends-in-delhi
+- Kaggle author profile:
+  https://www.kaggle.com/aniket0712
+- GitHub repository search:
+  https://github.com/search?q=%22delhi-ncr-hourly-air-quality-dataset-20192024%22&type=repositories
+- GitHub code search:
+  https://github.com/search?q=%22processed_aqi_data.csv%22&type=code
+- Public GitHub repository search for uploader handle:
+  https://github.com/aniket0712
+
+LIKELY BUT UNCONFIRMED
+======================
+
+These interpretations are plausible from the source wording, but the Kaggle
+source does not explicitly establish them:
+
+- The uploader likely intends the pollutant/AQI values to represent hourly
+  Delhi-NCR air-quality observations: the title and description say hourly
+  air-quality measurements and computed AQI. The upstream measurement or
+  generation process is not identified.
+- The five names likely function as city/location categories in the file,
+  consistent with Kaggle's explicit schema description of `location_name` as
+  a city name. It is not established that each category represents an
+  individual physical monitoring station or an aggregated city average.
+- The author-linked notebook likely documents downstream analysis of the
+  published CSV rather than the construction of the uploaded AQI field. The
+  visible code reads existing AQI values and does not calculate them; it does
+  not claim to be the dataset creation pipeline.
+- Kaggle's PM2.5/PM10 unit labels suggest the intended unit for those columns
+  is µg/m³. They do not prove the underlying source records actually use that
+  unit or that these are traceable official CPCB measurements.
+- The phrase "computed AQI values" suggests AQI is a computed/derived field
+  in some sense, but it does not prove AQI was derived from the six pollutant
+  columns, by a statistical model, by a specific AQI methodology, or by the
+  Kaggle uploader.
+
+UNKNOWN
+=======
+
+- Original/source dataset, source organization, source URL, and source data
+  license before Kaggle publication.
+- Whether pollutant values are from ground monitors, city averages, modeled
+  estimates, simulations, interpolation, synthetic generation, or a blend.
+- For each location, monitoring station names/IDs, instrument identity,
+  network, geospatial representativeness, and aggregation level.
+- Actual units for all pollutants as stored in the data-generation pipeline.
+  In particular, the Kaggle page leaves CO uncertain, gives alternative
+  units for NO2, and does not state O3 or SO2 units. The PM2.5/PM10 labels are
+  present but lack upstream traceability.
+- Source and exact formula for `aqi`, including methodology (CPCB, US AQI,
+  other, or custom), pollutants included, breakpoints, concentration units,
+  rolling/averaging periods, data completeness requirements, rounding, and
+  caps.
+- Whether `aqi_category` was assigned by the dataset author, copied from an
+  upstream source, or generated by an undocumented formula. The dataset's
+  category field does not itself identify the AQI calculation method.
+- Whether the dataset author's notebook is the complete original analysis
+  environment; it is not presented as a data-generation script.
+- A documented basis for reconstructing the exact AQI values that shipped
+  in the Kaggle CSV.
+
+ANSWERS AND RECOMMENDATIONS
+==========================
+
+A. Can we confidently call the historical AQI "CPCB AQI"?
+--------------------------------------------------------
+No. Kaggle does not identify the AQI as CPCB AQI or provide the method/source
+needed to substantiate that label.
+
+B. Can we confidently call the pollutant units official CPCB units?
+-------------------------------------------------------------------
+No. The Kaggle schema labels PM2.5 and PM10 as µg/m³, but the other pollutant
+units are missing or explicitly uncertain. The page does not say that its
+units are official CPCB reporting units or connect them to a CPCB source.
+
+C. Can we confidently use the existing dataset AQI as the ML target?
+--------------------------------------------------------------------
+It can be used only with a carefully limited interpretation: a target that
+forecasts the Kaggle-supplied, dataset-defined AQI series. The Kaggle page
+does call AQI "computed", but its provenance and calculation are unknown.
+It cannot confidently be presented as externally validated, official, or
+CPCB AQI. Scientific suitability for a claimed CPCB-AQI forecasting task is
+not established.
+
+D. Is there enough evidence to reconstruct a CPCB-consistent AQI target?
+-----------------------------------------------------------------------
+No. There is no confirmed unit/provenance for the underlying pollutant fields
+as a whole, no station/aggregation documentation, and no original calculation
+pipeline. A separate CPCB-style experimental target could be calculated only
+after the actual pollutant units and valid time-series semantics are
+established; even then it would be a new, explicitly defined target rather
+than a reproduction of Kaggle's AQI column.
+
+E. Safest academic-report wording
+---------------------------------
+"This study forecasts the AQI values supplied in the Kaggle dataset
+'Delhi NCR Hourly Air Quality Dataset (2019–2024)' by Arjav Aniket
+(Kaggle, version 1; accessed 2026-10-08). The dataset description calls these
+'computed AQI values' but does not identify their upstream source, calculation
+method, or AQI standard. Pollutant-unit metadata is incomplete/ambiguous.
+Accordingly, the target is referred to as dataset-defined AQI and is not
+claimed to be official CPCB AQI."
+
+For a CPCB-style comparison, add:
+"A separate CPCB-style AQI calculation was performed as an exploratory
+validation under stated unit and averaging assumptions; it is not treated as
+a verified reconstruction of the Kaggle source AQI."
+
+F. What should happen next with the ML model?
+---------------------------------------------
+- Do not relabel current historical AQI or existing model outputs as CPCB AQI.
+- Keep any current model results explicitly described as forecasts of the
+  dataset-defined AQI series while the source investigation continues.
+- Ask the Kaggle uploader for the upstream source citation/data dictionary,
+  original pollutant units, station/aggregation details, and AQI-generation
+  code/formula or a reproducible example.
+- Seek primary-source records or an authoritative dataset matching the
+  locations and timestamps. Verify measurement units and whether rows are
+  measured, aggregated, or modeled before constructing another target.
+- Do not retrain or replace the existing model solely on the current
+  unsupported unit assumption. If evidence later supports a CPCB-consistent
+  target, create a separately named research target and evaluate/retrain in a
+  separate, documented experiment without overwriting the current target or
+  artifacts.
+
+OVERALL DECISION
+================
+
+The external Kaggle investigation does not resolve the local provenance
+question. The strongest evidence is that the Kaggle uploader describes the
+file as hourly city-spanning air-quality data with "computed AQI values";
+however, no originating source or AQI calculation methodology is documented,
+and unit statements are incomplete. Continue with option C: further source
+investigation before deciding whether the ML target should be rebuilt.
+
+No project code, source data, processed data, model, model artifact, or UI was
+modified as part of this investigation. This report is the only project file
+created/updated.

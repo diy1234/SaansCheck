@@ -1,0 +1,7 @@
+horizon,target,model,train_rows,test_rows,MAE,RMSE,R2
+Day+1,AQI_t+1,Linear Regression,7290,1820,7.4499,9.8322,0.9719
+Day+1,AQI_t+1,Random Forest,7290,1820,6.8817,9.1035,0.9759
+Day+2,AQI_t+2,Linear Regression,7290,1815,7.6406,10.1451,0.9701
+Day+2,AQI_t+2,Random Forest,7290,1815,6.8022,8.9625,0.9767
+Day+3,AQI_t+3,Linear Regression,7290,1810,7.9932,10.5445,0.9678
+Day+3,AQI_t+3,Random Forest,7290,1810,6.8191,8.9881,0.9766

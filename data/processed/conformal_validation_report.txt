@@ -1,0 +1,45 @@
+SAANSCHECK CHRONOLOGICAL SPLIT-CONFORMAL INTERVAL VALIDATION
+====================================================================
+
+DECISION
+Intervals are NOT integrated into the Historical AQI Forecast dashboard.
+The saved dashboard models were trained through 2022, so 2021-2022
+cannot be used as independent calibration targets for those same fitted
+production models. The experiment below evaluates a separate in-memory
+Random Forest trained only through 2020; its interval radii do not apply
+to the saved production model forecasts.
+
+METHOD AND DATA BOUNDARIES
+Method: split conformal prediction with absolute residual scores; the
+finite-sample one-indexed quantile rank is ceil((n + 1) * 0.90).
+Each direct horizon uses a separate Random Forest. Calibration is done
+separately by station and horizon to avoid pooling station error scales.
+Predictors use the existing 22-column training feature contract only.
+Targets are grouped by location and partitioned by their actual target
+dates; no future target is used as a predictor.
+Training target dates: through 2020-12-31.
+Calibration target dates: 2021-01-01 through 2021-12-31.
+Evaluation target dates: 2022-01-01 through 2023-12-31.
+No model or joblib artifact was saved or modified.
+
+POOLED EMPIRICAL EVALUATION (per-horizon result rows are in the CSV)
+Horizon | Calibration n | Evaluation n | Coverage | Avg width
+--------|---------------|--------------|----------|----------
+Day+1 | 1825 | 3650 | 0.8942 | 30.2722
+Day+2 | 1825 | 3650 | 0.8907 | 29.7888
+Day+3 | 1825 | 3650 | 0.8896 | 30.0498
+
+INTERPRETATION AND LIMITATIONS
+The experiment reports observed empirical coverage and average interval
+width only. Ordinary split-conformal finite-sample coverage relies on
+exchangeability; daily AQI is serially dependent and seasonal, so the
+nominal 90% does not guarantee 90% coverage on this or every future
+distribution, especially under temporal or geographic distribution shift.
+The evaluation is independent of this experiment's model fitting and
+calibration by date, but is not an independent assessment of the saved
+production-model intervals. Existing walk-forward and 2023 model-evaluation
+artifacts were read only and were not rewritten.
+
+The CSV includes pooled and per-station metrics, station/horizon-specific
+calibration sample counts, evaluation sample counts, quantile radii, and
+the exact target-date boundaries.

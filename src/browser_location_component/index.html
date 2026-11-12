@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head>
+  <body>
+    <script>
+      (() => {
+        let activeRequestId = null;
+        let clearedRequestId = null;
+
+        function send(type, fields = {}) {
+          window.parent.postMessage(
+            { isStreamlitMessage: true, type, ...fields },
+            "*"
+          );
+        }
+
+        function sendResult(status, fields = {}) {
+          send("streamlit:setComponentValue", {
+            value: { status, ...fields },
+            dataType: "json"
+          });
+        }
+
+        window.addEventListener("message", (event) => {
+          const message = event.data;
+          if (!message || message.type !== "streamlit:render") return;
+
+          const args = message.args || {};
+          const requestId = args.request_id;
+          if (
+            args.clear_result &&
+            requestId &&
+            requestId === activeRequestId &&
+            clearedRequestId !== requestId
+          ) {
+            clearedRequestId = requestId;
+            sendResult("complete");
+            return;
+          }
+          if (!args.enabled || !requestId || requestId === activeRequestId) return;
+          activeRequestId = requestId;
+
+          if (!navigator.geolocation) {
+            sendResult("unsupported");
+            return;
+          }
+
+          sendResult("requesting");
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const { latitude, longitude } = position.coords;
+              if (
+                !Number.isFinite(latitude) ||
+                !Number.isFinite(longitude) ||
+                latitude < -90 ||
+                latitude > 90 ||
+                longitude < -180 ||
+                longitude > 180
+              ) {
+                sendResult("invalid");
+                return;
+              }
+              sendResult("granted", { latitude, longitude });
+            },
+            (error) => {
+              if (error.code === 1) sendResult("denied");
+              else if (error.code === 2) sendResult("unavailable");
+              else if (error.code === 3) sendResult("timeout");
+              else sendResult("error");
+            },
+            { enableHighAccuracy: false, maximumAge: 0, timeout: 15000 }
+          );
+        });
+
+        send("streamlit:componentReady", { apiVersion: 1 });
+        send("streamlit:setFrameHeight", { height: 0 });
+      })();
+    </script>
+  </body>
+</html>

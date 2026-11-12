@@ -1,0 +1,169 @@
+SAANSCHECK WALK-FORWARD VALIDATION AND MODEL SKILL ANALYSIS
+==================================================================
+
+1. METHODOLOGY
+Expanding chronological validation; no shuffling or random split.
+Each temporary model is fit in memory using the existing 22 predictors.
+Linear Regression and Random Forest are fit separately for each horizon.
+Random Forest settings match src/train_models.py: {'n_estimators': 100, 'max_depth': 15, 'min_samples_split': 4, 'min_samples_leaf': 2, 'random_state': 42, 'n_jobs': -1}
+Persistence predicts the observed origin-day aqi for each target horizon.
+The primary comparisons pool observations across locations. Location rows
+are also emitted separately in the machine-readable results.
+
+2. VALIDATION WINDOWS AND LABEL BOUNDARIES
+Window | training target dates allowed | validation target dates
+------- | ----------------------------- | ------------------------
+2019-2020_to_2021 | 2019-01-05 through 2020-12-31 (per horizon) | 2021-01-01 through 2021-12-31
+2019-2021_to_2022 | 2019-01-05 through 2021-12-31 (per horizon) | 2022-01-01 through 2022-12-31
+2019-2022_to_2023 | 2019-01-05 through 2022-12-31 (per horizon) | 2023-01-01 through 2023-12-31
+
+The training mask is based on target dates, not just feature-row years.
+Rows whose future target crosses the year-end cutoff are excluded from
+training. Validation samples are selected by their actual target date;
+thus the first validation outcomes may use observed origin rows from the
+last few days of the previous year, which are available at forecast time.
+No validation target contributes to model fitting or tuning.
+
+3. WINDOW-LEVEL POOLED MODEL METRICS
+Each cell is MAE / RMSE / R². R² measures explained variance, not accuracy.
+
+2019-2020_to_2021
+Horizon | Linear Regression | Random Forest | Persistence
+Day+1 | 7.101 / 9.258 / 0.9751 | 6.747 / 8.844 / 0.9773 | 8.899 / 11.720 / 0.9601
+Day+2 | 7.300 / 9.498 / 0.9738 | 6.710 / 8.774 / 0.9776 | 9.050 / 11.810 / 0.9595
+Day+3 | 7.527 / 9.864 / 0.9717 | 6.853 / 8.959 / 0.9767 | 8.894 / 11.614 / 0.9608
+
+2019-2021_to_2022
+Horizon | Linear Regression | Random Forest | Persistence
+Day+1 | 7.364 / 9.774 / 0.9721 | 6.919 / 9.091 / 0.9759 | 9.328 / 12.167 / 0.9568
+Day+2 | 7.584 / 10.070 / 0.9704 | 6.861 / 9.047 / 0.9761 | 9.131 / 12.100 / 0.9573
+Day+3 | 7.866 / 10.479 / 0.9679 | 6.930 / 9.119 / 0.9757 | 9.501 / 12.645 / 0.9533
+
+2019-2022_to_2023
+Horizon | Linear Regression | Random Forest | Persistence
+Day+1 | 7.452 / 9.831 / 0.9718 | 6.819 / 9.050 / 0.9761 | 9.284 / 12.151 / 0.9569
+Day+2 | 7.668 / 10.176 / 0.9698 | 6.836 / 9.011 / 0.9763 | 9.331 / 12.325 / 0.9557
+Day+3 | 8.023 / 10.578 / 0.9674 | 6.902 / 9.049 / 0.9761 | 9.599 / 12.613 / 0.9536
+
+4. RF IMPROVEMENT AND PERSISTENCE-RELATIVE SKILL
+Improvement (%) = (baseline MAE - RF MAE) / baseline MAE * 100.
+Skill = 1 - (model MAE / persistence MAE); positive means better than persistence.
+Window | Horizon | RF MAE | LR MAE | Persistence MAE | RF vs LR (%) | RF vs persistence (%) | RF skill
+2019-2020_to_2021 | Day+1 | 6.747 | 7.101 | 8.899 | 4.98 | 24.18 | 0.2418
+2019-2020_to_2021 | Day+2 | 6.710 | 7.300 | 9.050 | 8.08 | 25.86 | 0.2586
+2019-2020_to_2021 | Day+3 | 6.853 | 7.527 | 8.894 | 8.95 | 22.94 | 0.2294
+2019-2021_to_2022 | Day+1 | 6.919 | 7.364 | 9.328 | 6.04 | 25.82 | 0.2582
+2019-2021_to_2022 | Day+2 | 6.861 | 7.584 | 9.131 | 9.53 | 24.86 | 0.2486
+2019-2021_to_2022 | Day+3 | 6.930 | 7.866 | 9.501 | 11.90 | 27.06 | 0.2706
+2019-2022_to_2023 | Day+1 | 6.819 | 7.452 | 9.284 | 8.50 | 26.55 | 0.2655
+2019-2022_to_2023 | Day+2 | 6.836 | 7.668 | 9.331 | 10.86 | 26.74 | 0.2674
+2019-2022_to_2023 | Day+3 | 6.902 | 8.023 | 9.599 | 13.97 | 28.10 | 0.2810
+
+5. HORIZON COMPARISON (MEAN MAE ACROSS WINDOWS)
+Model | Day+1 MAE | Day+2 MAE | Day+3 MAE | Day+3 minus Day+1
+Linear Regression | 7.306 | 7.517 | 7.805 | +0.499
+Random Forest | 6.828 | 6.802 | 6.895 | +0.067
+Persistence | 9.170 | 9.171 | 9.331 | +0.161
+Interpretation: increases/decreases above describe these observed mean MAEs; they are not assumed to be monotonic.
+
+6. RANDOM FOREST PERFORMANCE STABILITY ACROSS WINDOWS
+Values are mean and sample standard deviation (ddof=1) across the three windows.
+Horizon | MAE mean | MAE SD | RMSE mean | RMSE SD | R² mean | R² SD
+Day+1 | 6.828 | 0.086 | 8.995 | 0.132 | 0.9764 | 0.0007
+Day+2 | 6.802 | 0.081 | 8.944 | 0.148 | 0.9767 | 0.0008
+Day+3 | 6.895 | 0.039 | 9.042 | 0.080 | 0.9762 | 0.0005
+
+7. LOCATION-WISE RANDOM FOREST PERFORMANCE
+Mean MAE across validation windows; location labels are dataset locations,
+not claims that each row represents a physical monitoring station.
+Location | Day+1 | Day+2 | Day+3
+Delhi | 6.725 | 6.583 | 6.757
+Faridabad | 6.997 | 6.921 | 6.942
+Ghaziabad | 6.923 | 6.907 | 6.938
+Gurgaon | 6.801 | 6.887 | 6.938
+Noida | 6.696 | 6.713 | 6.901
+
+8. ACTUAL-AQI-CATEGORY ERROR ANALYSIS (RF ONLY)
+Categories are the existing dataset-defined labels; metrics are reported only when n >= 30. These are not identified as CPCB categories.
+Window | Horizon | Dataset category | n | MAE | RMSE | Included
+2019-2020_to_2021 | Day+1 | Good | 2 | 28.862 | 28.865 | no (small n)
+2019-2020_to_2021 | Day+1 | Moderate | 682 | 8.281 | 10.338 | yes
+2019-2020_to_2021 | Day+1 | Poor | 715 | 4.273 | 5.464 | yes
+2019-2020_to_2021 | Day+1 | Satisfactory | 426 | 8.341 | 10.486 | yes
+2019-2020_to_2021 | Day+2 | Good | 2 | 30.681 | 31.038 | no (small n)
+2019-2020_to_2021 | Day+2 | Moderate | 682 | 8.170 | 10.193 | yes
+2019-2020_to_2021 | Day+2 | Poor | 715 | 4.304 | 5.469 | yes
+2019-2020_to_2021 | Day+2 | Satisfactory | 426 | 8.297 | 10.427 | yes
+2019-2020_to_2021 | Day+3 | Good | 2 | 30.508 | 30.516 | no (small n)
+2019-2020_to_2021 | Day+3 | Moderate | 682 | 8.505 | 10.576 | yes
+2019-2020_to_2021 | Day+3 | Poor | 715 | 4.328 | 5.600 | yes
+2019-2020_to_2021 | Day+3 | Satisfactory | 426 | 8.335 | 10.380 | yes
+2019-2021_to_2022 | Day+1 | Good | 1 | 28.761 | 28.761 | no (small n)
+2019-2021_to_2022 | Day+1 | Moderate | 686 | 8.933 | 11.275 | yes
+2019-2021_to_2022 | Day+1 | Poor | 717 | 4.412 | 5.670 | yes
+2019-2021_to_2022 | Day+1 | Satisfactory | 421 | 7.857 | 9.714 | yes
+2019-2021_to_2022 | Day+2 | Good | 1 | 28.568 | 28.568 | no (small n)
+2019-2021_to_2022 | Day+2 | Moderate | 686 | 8.858 | 11.225 | yes
+2019-2021_to_2022 | Day+2 | Poor | 717 | 4.358 | 5.603 | yes
+2019-2021_to_2022 | Day+2 | Satisfactory | 421 | 7.817 | 9.698 | yes
+2019-2021_to_2022 | Day+3 | Good | 1 | 27.880 | 27.880 | no (small n)
+2019-2021_to_2022 | Day+3 | Moderate | 686 | 8.870 | 11.214 | yes
+2019-2021_to_2022 | Day+3 | Poor | 717 | 4.397 | 5.600 | yes
+2019-2021_to_2022 | Day+3 | Satisfactory | 421 | 8.033 | 10.014 | yes
+2019-2022_to_2023 | Day+1 | Moderate | 682 | 8.758 | 11.106 | yes
+2019-2022_to_2023 | Day+1 | Poor | 722 | 4.259 | 5.424 | yes
+2019-2022_to_2023 | Day+1 | Satisfactory | 421 | 8.067 | 10.234 | yes
+2019-2022_to_2023 | Day+2 | Moderate | 682 | 8.838 | 11.094 | yes
+2019-2022_to_2023 | Day+2 | Poor | 722 | 4.226 | 5.415 | yes
+2019-2022_to_2023 | Day+2 | Satisfactory | 421 | 8.066 | 10.116 | yes
+2019-2022_to_2023 | Day+3 | Moderate | 682 | 8.775 | 11.002 | yes
+2019-2022_to_2023 | Day+3 | Poor | 722 | 4.356 | 5.565 | yes
+2019-2022_to_2023 | Day+3 | Satisfactory | 421 | 8.233 | 10.284 | yes
+
+9. LEAKAGE AND IMPLEMENTATION CHECKS
+- Rows are checked for chronological date ordering within each location.
+- No random split or shuffle is used; validation windows are calendar-based.
+- The 22 predictors are explicit; no future target column is included in X.
+- AQI_t+1/+2/+3 are asserted equal to within-location forward AQI shifts.
+- Stored lags and shifted rolling features are checked against backward-only
+  computations after the dataset's initial history rows.
+- Location one-hot indicators are checked against location_name.
+- Training target dates are capped at the year-end before validation.
+- Validation observations are selected by target date, with no overlap of
+  training and validation target dates.
+- Persistence predictions are copied from observed origin-day aqi only.
+- Temporary models are fitted in memory; this script does not serialize models.
+
+10. EXISTING 2023 SPLIT BOUNDARY CONCERN
+The existing training script selects training rows by origin year <= 2022.
+For direct horizons, origins on the last 1, 2, or 3 days of 2022 can have
+targets in 2023. Those target labels cross the nominal 2023 test boundary;
+the existing split therefore is not a perfectly isolated target-date split.
+This experiment excludes such rows from each temporary training fold. No
+production artifact, historical dataset, or existing result file is changed.
+The 2023 window is scored only after fitting on labels ending by 2022-12-31.
+
+11. LIMITATIONS
+- Five locations from one dataset and three annual validation periods limit
+  geographic and temporal generalization claims.
+- The AQI remains dataset-defined; category labels and AQI provenance are not
+  converted or represented as verified CPCB AQI.
+- Annual folds provide only three observations for window-to-window stability;
+  standard deviations are descriptive, not inferential confidence intervals.
+- The 2023 period is both the prior project holdout and the final walk-forward
+  validation year; it was not used for fitting or hyperparameter selection here.
+- This compares historical inputs, not live-data forecasting performance.
+
+12. OUTPUT PLOTS
+- C:/Users/DEll/Desktop/MINOR PROJECT SEMESTER 3/Saanscheck gravity/data/processed/plots/mae_by_model_and_horizon.png
+- C:/Users/DEll/Desktop/MINOR PROJECT SEMESTER 3/Saanscheck gravity/data/processed/plots/random_forest_mae_by_window.png
+- C:/Users/DEll/Desktop/MINOR PROJECT SEMESTER 3/Saanscheck gravity/data/processed/plots/rf_improvement_vs_persistence.png
+- C:/Users/DEll/Desktop/MINOR PROJECT SEMESTER 3/Saanscheck gravity/data/processed/plots/rf_mae_by_location.png
+
+13. CONCLUSION
+- Day+1: RF MAE is lower than LR in 3/3 windows; RF persistence-relative skill ranges 0.2418 to 0.2655.
+- Day+2: RF MAE is lower than LR in 3/3 windows; RF persistence-relative skill ranges 0.2486 to 0.2674.
+- Day+3: RF MAE is lower than LR in 3/3 windows; RF persistence-relative skill ranges 0.2294 to 0.2810.
+Interpret the window-specific tables above rather than relying on one aggregate
+score. Positive persistence skill means lower MAE than the baseline; it is not
+a percentage-accuracy claim. R² is explained variance, not accuracy.

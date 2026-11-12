@@ -1,0 +1,96 @@
+================================================================================
+SAANSCHECK - PHASE 3 FEATURE ENGINEERING & TARGET FORMULATION REPORT
+================================================================================
+
+1. DATASET OVERVIEW & BOUNDARY DROPPING:
+   - Input Dataset:                  data/processed/daily_air_quality.csv (9,130 rows x 23 cols)
+   - Boundary Rows Dropped:          15 rows (Jan 1-3, 2019 for 5 stations due to initial t-1, t-2, t-3 lags)
+   - Cleaned Dataset Rows:           9,115 daily records
+   - Days per Monitoring Location:   1,823 complete consecutive days per station
+   - Date Span:                      2019-01-04 to 2023-12-31
+   - Final ML-Ready Dataset Shape:   9,115 rows x 31 columns
+
+2. DIRECT TARGET FORMULATION (MULTI-HORIZON):
+   - AQI_t+1: Direct 1-day ahead forecast target (AQI at date t+1)
+   - AQI_t+2: Direct 2-days ahead forecast target (AQI at date t+2)
+   - AQI_t+3: Direct 3-days ahead forecast target (AQI at date t+3)
+   - Station Isolation Rule: Computed via groupby('location_name')['aqi'].shift(-k).
+     Guarantees that Station A's future values NEVER shift into Station B's timeline.
+   - End-of-Series Target NaNs: The final 3 days of 2023 for each station naturally have NaNs for targets
+     because observations after 2023-12-31 are not part of the historical evaluation series.
+
+3. PREDICTOR FEATURES FOR BASELINE ML MODELS (Total: 22 Features):
+   A. Autoregressive Signals (7 features):
+      - aqi: Observed daily AQI at day t (primary autoregressive anchor)
+      - AQI_lag_1: Observed AQI at day t-1 (yesterday)
+      - AQI_lag_2: Observed AQI at day t-2 (2 days ago)
+      - AQI_lag_3: Observed AQI at day t-3 (3 days ago)
+      - AQI_rolling_mean_3: 3-day backward rolling average of past AQI
+      - AQI_rolling_mean_7: 7-day backward rolling average of past AQI
+      - AQI_rolling_std_7: 7-day backward rolling standard deviation (volatility)
+   B. Particulate & Chemical Precursor Pollutants (6 features):
+      - pm25: Fine particulate matter <= 2.5 um (daily mean at day t)
+      - pm10: Coarse particulate matter <= 10 um (daily mean at day t)
+      - no2:  Nitrogen dioxide (daily mean at day t)
+      - so2:  Sulfur dioxide (daily mean at day t)
+      - co:   Carbon monoxide (daily mean at day t)
+      - o3:   Ozone (daily mean at day t)
+   C. Calendar & Temporal Cycles (4 features):
+      - month: Captures seasonal winter smog, summer, and monsoon cycles
+      - day: Captures day-of-month calendar variation
+      - day_of_week: Captures weekly traffic and industrial rhythm (0=Mon, 6=Sun)
+      - is_weekend: Binary indicator for weekend emission reductions
+   D. Spatial Station One-Hot Dummies (5 features):
+      - loc_Delhi, loc_Faridabad, loc_Ghaziabad, loc_Gurgaon, loc_Noida: Captures station-specific baseline offsets
+
+4. EXCLUDED COLUMNS & RATIONALE:
+   - date: Timestamp string. Excluded from numerical regression matrix X; used strictly for chronological splitting.
+   - location_name: Categorical string. Replaced by numeric one-hot spatial dummy indicators.
+   - location_lat, location_lon: Static numerical coordinates collinear with spatial dummies; preserved for UI maps.
+   - aqi_category: Categorical text label. Excluded from regression X to avoid target redundancy and string typing issues.
+   - year: Excluded from baseline feature matrix to prevent linear models from extrapolating an unobserved future year
+     trend during out-of-time evaluation; preserved in dataset as metadata.
+   - Future targets (AQI_t+1, AQI_t+2, AQI_t+3): Strictly reserved as prediction targets Y.
+
+5. TARGET LEAKAGE AUDIT VERIFICATION:
+   - Backward-Only Window Check: All rolling statistics operate on shift(1). Past days only.
+   - Target Shift Boundary Check: Verified that Station A tail has NaN targets and does not bleed into Station B.
+   - Perfect Identity Check: Verified maximum feature-to-target correlation is <= 0.984 (no artificial 1.0 leaks).
+   - Chronological Integrity: All rows remain strictly sorted by location_name and date.
+
+6. DATASET SCHEMA & COLUMN TYPES:
+    1. date                 (object)
+    2. location_name        (object)
+    3. location_lat         (float64)
+    4. location_lon         (float64)
+    5. aqi_category         (object)
+    6. AQI_t+1              (float64)
+    7. AQI_t+2              (float64)
+    8. AQI_t+3              (float64)
+    9. year                 (int64)
+   10. aqi                  (float64)
+   11. AQI_lag_1            (float64)
+   12. AQI_lag_2            (float64)
+   13. AQI_lag_3            (float64)
+   14. AQI_rolling_mean_3   (float64)
+   15. AQI_rolling_mean_7   (float64)
+   16. AQI_rolling_std_7    (float64)
+   17. pm25                 (float64)
+   18. pm10                 (float64)
+   19. no2                  (float64)
+   20. so2                  (float64)
+   21. co                   (float64)
+   22. o3                   (float64)
+   23. month                (int64)
+   24. day                  (int64)
+   25. day_of_week          (int64)
+   26. is_weekend           (int64)
+   27. loc_Delhi            (int64)
+   28. loc_Faridabad        (int64)
+   29. loc_Ghaziabad        (int64)
+   30. loc_Gurgaon          (int64)
+   31. loc_Noida            (int64)
+
+================================================================================
+END OF FEATURE ENGINEERING AUDIT REPORT
+================================================================================
